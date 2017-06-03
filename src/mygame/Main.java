@@ -28,7 +28,6 @@ public class Main extends SimpleApplication {
     private BulletAppState estadosFisicos;
     private RigidBodyControl fisicaSuelo, fisicaArea, fisicaPelota;
     private Geometry pelota;
-    private final AnalogListener analogListener;
     private Vector3f pPelota;
     
     public static void main(String[] args) {
@@ -37,42 +36,7 @@ public class Main extends SimpleApplication {
     }
 
     public Main() {
-        //Control por teclado
-        this.analogListener = new AnalogListener() {
-            @Override
-            public void onAnalog(String name, float value, float tpf) {
-                switch (name) {
-                    case "Ahead":
-                        fisicaPelota.clearForces();
-                        if (fisicaPelota.getLinearVelocity().z > 0) {
-                            fisicaPelota.applyCentralForce(new Vector3f(0, 0, -6));
-                        }
-                        fisicaPelota.applyCentralForce(new Vector3f(0, 0, -3));
-                        break;
-                    case "Behind":
-                        fisicaPelota.clearForces();
-                        if (fisicaPelota.getLinearVelocity().z < 0) {
-                            fisicaPelota.applyCentralForce(new Vector3f(0, 0, 6));
-                        }
-                        fisicaPelota.applyCentralForce(new Vector3f(0, 0, 3));
-                        break;
-                    case "Left":
-                        fisicaPelota.clearForces();
-                        if (fisicaPelota.getLinearVelocity().x > 0) {
-                            fisicaPelota.applyCentralForce(new Vector3f(-6, 0, 0));
-                        }
-                        fisicaPelota.applyCentralForce(new Vector3f(-3, 0, 0));
-                        break;
-                    case "Right":
-                        fisicaPelota.clearForces();
-                        if (fisicaPelota.getLinearVelocity().x < 0) {
-                            fisicaPelota.applyCentralForce(new Vector3f(6, 0, 0));
-                        }
-                        fisicaPelota.applyCentralForce(new Vector3f(3, 0, 0));
-                        break;
-                }
-            }
-        };
+        
     }
     
     //Colisiones
@@ -89,6 +53,8 @@ public class Main extends SimpleApplication {
     public void simpleInitApp() {
         //Cámara
         this.flyCam.setEnabled(true);
+        cam.setLocation(new Vector3f(20, 5, 20));
+        cam.lookAt(new Vector3f(0, 0, 0), Vector3f.UNIT_Y);
         
         //Fisica
         estadosFisicos = new BulletAppState();
@@ -141,13 +107,6 @@ public class Main extends SimpleApplication {
         fisicaPelota.setRestitution(0.6f);
         fisicaPelota.setMass(0.5f);
         
-        //Control por teclado
-        inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_A));
-        inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
-        inputManager.addMapping("Ahead", new KeyTrigger(KeyInput.KEY_W));
-        inputManager.addMapping("Behind", new KeyTrigger(KeyInput.KEY_S));
-        inputManager.addListener(analogListener, "Left", "Right", "Ahead", "Behind");
-        
         //Colisiones
         estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
     }
@@ -155,10 +114,6 @@ public class Main extends SimpleApplication {
     @Override
     public void simpleUpdate(float tpf) {
         pPelota = fisicaPelota.getPhysicsLocation();
-        cam.setLocation(new Vector3f(pPelota.x, pPelota.y+4f, pPelota.z+9f));
-        cam.lookAt(new Vector3f(pPelota.x, pPelota.y+2f, pPelota.z-3f), Vector3f.UNIT_Y);
-        
-        pPelota = pelota.getLocalTranslation();
     }
 
     @Override
