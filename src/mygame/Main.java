@@ -125,10 +125,16 @@ public class Main extends SimpleApplication {
     public void simpleUpdate(float tpf) {
         pPelota = fisicaPelota.getPhysicsLocation();
         pCanasta = fisicaCanasta.getPhysicsLocation();
+        
+        
     }
     
     private double distanciaObjetivo() {
         return Math.sqrt(Math.pow(pPelota.x - pCanasta.x, 2) + Math.pow(pPelota.z - pCanasta.z, 2));
+    }
+    
+    private void disparaPelota(float fuerza, Vector3f direccion, float angulo) {
+        fisicaPelota.applyCentralForce(new Vector3f(direccion.x, angulo, direccion.z).mult(fuerza));
     }
 
     @Override
