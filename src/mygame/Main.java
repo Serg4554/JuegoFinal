@@ -54,6 +54,7 @@ public class Main extends SimpleApplication {
 
                     rootNode.detachChildNamed("pelota");
                     lanzando=false;
+                    System.out.println(" distancia: "+errorCometido());
                 }
                 
             }
@@ -76,6 +77,7 @@ public class Main extends SimpleApplication {
         //Carga mundo
         mundo = assetManager.loadModel("Scenes/escena.j3o");
         mundo.setName("tierra");
+        mundo.setLocalTranslation(0f,-1f, 0);
         rootNode.attachChild(mundo);
         fisicaSuelo = new RigidBodyControl(0.0f);
         mundo.addControl(fisicaSuelo);
@@ -94,6 +96,7 @@ public class Main extends SimpleApplication {
         //Carga area
         area = assetManager.loadModel("Models/area.j3o");
         area.setName("suelo");
+        area.scale(3,1,3);
         rootNode.attachChild(area);
         area.setLocalTranslation(new Vector3f(0, 0, 0));
         fisicaArea = new RigidBodyControl(0.0f);
@@ -141,7 +144,6 @@ public class Main extends SimpleApplication {
         if(!lanzando){
             lanzar();  
             lanzando=true;
-            System.out.println("fisica "+fisicaPelota.getObjectId());
             pPelota = fisicaPelota.getPhysicsLocation();
             pCanasta = fisicaCanasta.getPhysicsLocation();
         }
@@ -152,8 +154,14 @@ public class Main extends SimpleApplication {
         return Math.sqrt(Math.pow(pPelota.x - pCanasta.x, 2) + Math.pow(pPelota.z - pCanasta.z, 2));
     }
     
+    private double errorCometido() {
+        
+        return fisicaPelota.getPhysicsLocation().x - fisicaCanasta.getPhysicsLocation().x + fisicaPelota.getPhysicsLocation().z - fisicaCanasta.getPhysicsLocation().z;
+    }
+    
     private void disparaPelota(float fuerza, Vector3f direccion, float angulo) {
-        fisicaPelota.applyImpulse(new Vector3f(direccion.x, angulo, direccion.z).mult(fuerza),new Vector3f(1,1,1));
+        Vector3f dir = new Vector3f(new Vector3f(direccion.x-fisicaPelota.getPhysicsLocation().x, angulo, direccion.z-fisicaPelota.getPhysicsLocation().z)).normalize();
+        fisicaPelota.applyImpulse(dir.mult(fuerza),new Vector3f(1,1,1));
     }
 
     @Override
@@ -172,7 +180,7 @@ public class Main extends SimpleApplication {
         mat_bola2.setFloat("Shininess", 64f);
         pelota = new Geometry("pelota", sphere2);
         pelota.setMaterial(mat_bola2);
-        pelota.setLocalTranslation(new Vector3f(0, 10f, 10));
+        pelota.setLocalTranslation(new Vector3f(0, 1f, 10));
         rootNode.attachChild(pelota);
         fisicaPelota = new RigidBodyControl(1f);
         pelota.addControl(fisicaPelota);
@@ -181,9 +189,10 @@ public class Main extends SimpleApplication {
         fisicaPelota.setRestitution(0.6f);
         fisicaPelota.setMass(0.5f);
         
-        float fuerza=(float)Math.random();
-        float angulo=(float)Math.random()*20;
+        float fuerza=(float)Math.random()*10;
+        float angulo=(float)Math.random()*10+4;
         
+        System.out.print("fuerza: "+fuerza+" angulo: "+angulo);
         disparaPelota(fuerza,fisicaCanasta.getPhysicsLocation(),angulo);
 
     }
