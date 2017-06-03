@@ -17,7 +17,9 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer;
+import com.jme3.scene.shape.Dome;
 import com.jme3.scene.shape.Sphere;
+import com.jme3.scene.shape.Torus;
 import com.jme3.util.TangentBinormalGenerator;
 
 /**
@@ -213,6 +215,12 @@ public class Main extends SimpleApplication {
         Material lineMaterial2 = assetManager.loadMaterial("Common/Materials/RedColor.j3m");
         lineGeometry2.setMaterial(lineMaterial2);
         rootNode.attachChild(lineGeometry2);
+        
+        //canasta
+        Spatial canasta = assetManager.loadModel("Models/wooden_basket.j3o");
+        canasta.setName("canasta");
+        rootNode.attachChild(canasta);
+        
     }
     
     @Override
