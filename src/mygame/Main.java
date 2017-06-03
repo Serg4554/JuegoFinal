@@ -53,7 +53,7 @@ public class Main extends SimpleApplication {
     public void simpleInitApp() {
         //Cámara
         this.flyCam.setEnabled(true);
-        cam.setLocation(new Vector3f(20, 5, 20));
+        cam.setLocation(new Vector3f(20, 5, 0));
         cam.lookAt(new Vector3f(0, 0, 0), Vector3f.UNIT_Y);
         
         //Fisica
