@@ -16,6 +16,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Sphere;
+import com.jme3.scene.shape.Torus;
 import com.jme3.util.TangentBinormalGenerator;
 
 /**
@@ -26,9 +27,10 @@ import com.jme3.util.TangentBinormalGenerator;
 public class Main extends SimpleApplication {
     private Spatial mundo, area;
     private BulletAppState estadosFisicos;
-    private RigidBodyControl fisicaSuelo, fisicaArea, fisicaPelota;
+    private RigidBodyControl fisicaSuelo, fisicaArea, fisicaPelota, fisicaCanasta;
     private Geometry pelota;
     private Vector3f pPelota;
+    Spatial canasta;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -53,6 +55,7 @@ public class Main extends SimpleApplication {
     public void simpleInitApp() {
         //Cámara
         this.flyCam.setEnabled(true);
+        this.flyCam.setMoveSpeed(30);
         cam.setLocation(new Vector3f(20, 5, 0));
         cam.lookAt(new Vector3f(0, 0, 0), Vector3f.UNIT_Y);
         
@@ -109,6 +112,18 @@ public class Main extends SimpleApplication {
         
         //Colisiones
         estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
+        
+        //canasta
+        canasta = assetManager.loadModel("Models/wooden_basket.j3o");
+        canasta.setName("canasta");
+        canasta.scale(2,3,2);
+        rootNode.attachChild(canasta);
+        fisicaCanasta = new RigidBodyControl(1f);
+        canasta.addControl(fisicaCanasta);
+        estadosFisicos.getPhysicsSpace().add(fisicaCanasta);
+        fisicaCanasta.setRestitution(0.6f);
+        fisicaCanasta.setMass(8.5f);
+        
     }
     
     @Override
