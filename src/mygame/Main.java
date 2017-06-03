@@ -100,7 +100,7 @@ public class Main extends SimpleApplication {
         mat_bola2.setFloat("Shininess", 64f);
         pelota = new Geometry("pelota", sphere2);
         pelota.setMaterial(mat_bola2);
-        pelota.setLocalTranslation(new Vector3f(0, 10f, 0));
+        pelota.setLocalTranslation(new Vector3f(0, 1f, 10));
         rootNode.attachChild(pelota);
         fisicaPelota = new RigidBodyControl(1f);
         pelota.addControl(fisicaPelota);
@@ -112,7 +112,7 @@ public class Main extends SimpleApplication {
         canasta = assetManager.loadModel("Models/canasta.j3o");
         canasta.setName("canasta");
         rootNode.attachChild(canasta);
-        canasta.setLocalTranslation(new Vector3f(0, 0.5f, 0));
+        canasta.setLocalTranslation(new Vector3f(0, 0.5f, -10));
         fisicaCanasta = new RigidBodyControl(0f);
         canasta.addControl(fisicaCanasta);
         estadosFisicos.getPhysicsSpace().add(fisicaCanasta);
