@@ -5,9 +5,6 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.RigidBodyControl;
-import com.jme3.input.KeyInput;
-import com.jme3.input.controls.AnalogListener;
-import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -16,7 +13,6 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Sphere;
-import com.jme3.scene.shape.Torus;
 import com.jme3.util.TangentBinormalGenerator;
 
 /**
@@ -30,7 +26,7 @@ public class Main extends SimpleApplication {
     private RigidBodyControl fisicaSuelo, fisicaArea, fisicaPelota, fisicaCanasta;
     private Geometry pelota;
     private Vector3f pPelota;
-    Spatial canasta;
+    private Spatial canasta;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -102,7 +98,7 @@ public class Main extends SimpleApplication {
         mat_bola2.setFloat("Shininess", 64f);
         pelota = new Geometry("bolaJugadora", sphere2);
         pelota.setMaterial(mat_bola2);
-        pelota.setLocalTranslation(new Vector3f(0, 4f, 0));
+        pelota.setLocalTranslation(new Vector3f(0, 10f, 0));
         rootNode.attachChild(pelota);
         fisicaPelota = new RigidBodyControl(1f);
         pelota.addControl(fisicaPelota);
@@ -110,19 +106,17 @@ public class Main extends SimpleApplication {
         fisicaPelota.setRestitution(0.6f);
         fisicaPelota.setMass(0.5f);
         
-        //Colisiones
-        estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
-        
         //canasta
-        canasta = assetManager.loadModel("Models/wooden_basket.j3o");
+        canasta = assetManager.loadModel("Models/canasta.j3o");
         canasta.setName("canasta");
-        canasta.scale(2,3,2);
         rootNode.attachChild(canasta);
-        fisicaCanasta = new RigidBodyControl(1f);
+        canasta.setLocalTranslation(new Vector3f(0, 0.5f, 0));
+        fisicaCanasta = new RigidBodyControl(0f);
         canasta.addControl(fisicaCanasta);
         estadosFisicos.getPhysicsSpace().add(fisicaCanasta);
-        fisicaCanasta.setRestitution(0.6f);
-        fisicaCanasta.setMass(8.5f);
+        
+        //Colisiones
+        estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
         
     }
     
