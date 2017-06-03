@@ -25,7 +25,7 @@ public class Main extends SimpleApplication {
     private BulletAppState estadosFisicos;
     private RigidBodyControl fisicaSuelo, fisicaArea, fisicaPelota, fisicaCanasta;
     private Geometry pelota;
-    private Vector3f pPelota;
+    private Vector3f pPelota, pCanasta;
     private Spatial canasta;
     
     public static void main(String[] args) {
@@ -41,8 +41,10 @@ public class Main extends SimpleApplication {
     private final PhysicsCollisionListener physicsCollisionListener = new PhysicsCollisionListener() {
         @Override
         public void collision(PhysicsCollisionEvent event) {
-            if (event.getNodeA().getName().equals("bolaJugadora") && event.getNodeB().getName().equals("suelo")) {
-                //Colisiones
+            if (event.getNodeA().getName().equals("pelota") && event.getNodeB().getName().equals("suelo")) {
+                if(distanciaObjetivo() < 1) {
+                    System.out.println("Colisión");
+                }
             }
         }
     };
@@ -61,7 +63,7 @@ public class Main extends SimpleApplication {
         
         //Carga mundo
         mundo = assetManager.loadModel("Scenes/escena.j3o");
-        mundo.setName("suelo");
+        mundo.setName("tierra");
         rootNode.attachChild(mundo);
         fisicaSuelo = new RigidBodyControl(0.0f);
         mundo.addControl(fisicaSuelo);
@@ -79,7 +81,7 @@ public class Main extends SimpleApplication {
         
         //Carga area
         area = assetManager.loadModel("Models/area.j3o");
-        area.setName("area");
+        area.setName("suelo");
         rootNode.attachChild(area);
         area.setLocalTranslation(new Vector3f(0, 0, 0));
         fisicaArea = new RigidBodyControl(0.0f);
@@ -96,7 +98,7 @@ public class Main extends SimpleApplication {
         mat_bola2.setColor("Diffuse",ColorRGBA.LightGray);
         mat_bola2.setColor("Specular",ColorRGBA.White);
         mat_bola2.setFloat("Shininess", 64f);
-        pelota = new Geometry("bolaJugadora", sphere2);
+        pelota = new Geometry("pelota", sphere2);
         pelota.setMaterial(mat_bola2);
         pelota.setLocalTranslation(new Vector3f(0, 10f, 0));
         rootNode.attachChild(pelota);
@@ -117,12 +119,16 @@ public class Main extends SimpleApplication {
         
         //Colisiones
         estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
-        
     }
     
     @Override
     public void simpleUpdate(float tpf) {
         pPelota = fisicaPelota.getPhysicsLocation();
+        pCanasta = fisicaCanasta.getPhysicsLocation();
+    }
+    
+    private double distanciaObjetivo() {
+        return Math.sqrt(Math.pow(pPelota.x - pCanasta.x, 2) + Math.pow(pPelota.z - pCanasta.z, 2));
     }
 
     @Override
