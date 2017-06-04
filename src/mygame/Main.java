@@ -75,14 +75,14 @@ public class Main extends SimpleApplication {
         stateManager.attach(estadosFisicos);
         
         //Carga mundo
-        mundo = assetManager.loadModel("Scenes/escena.j3o");
-        mundo.setName("tierra");
-        mundo.setLocalTranslation(0f,-1f, 0);
-        rootNode.attachChild(mundo);
-        fisicaSuelo = new RigidBodyControl(0.0f);
-        mundo.addControl(fisicaSuelo);
-        estadosFisicos.getPhysicsSpace().add(fisicaSuelo);
-        fisicaSuelo.setRestitution(0.9f);
+//        mundo = assetManager.loadModel("Scenes/escena.j3o");
+//        mundo.setName("tierra");
+//        mundo.setLocalTranslation(0f,-1f, 0);
+//        rootNode.attachChild(mundo);
+//        fisicaSuelo = new RigidBodyControl(0.0f);
+//        mundo.addControl(fisicaSuelo);
+//        estadosFisicos.getPhysicsSpace().add(fisicaSuelo);
+//        fisicaSuelo.setRestitution(0.9f);
         
         //Cielo
         viewPort.setBackgroundColor(new ColorRGBA(0.7f, 0.8f, 1f, 1f));
