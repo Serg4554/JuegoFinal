@@ -44,6 +44,8 @@ public class Main extends SimpleApplication {
     private Instances casosEntrenamiento = null;
     private Instance casoAdecidir;
     private int maximoNumeroCasosEntrenamiento = 300;
+    private float fuerza;
+    private Vector3f posicionPelota;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -58,14 +60,18 @@ public class Main extends SimpleApplication {
     private final PhysicsCollisionListener physicsCollisionListener = new PhysicsCollisionListener() {
         @Override
         public void collision(PhysicsCollisionEvent event) {
-            if (event.getNodeA().getName().equals("pelota") && event.getNodeB().getName().equals("suelo")) {
-                if(distanciaObjetivo() < 1) {
-                    System.out.println("Canasta!");
-                    
-                }
-                
+            if (event.getNodeA().getName().equals("pelota") && event.getNodeB().getName().equals("suelo")) {               
                 if(!finLanzamiento && lanzando){
-                    double valorReal = errorCometido();
+                    double valorReal;
+                    if(errorCometido() > 0.5f)
+                        valorReal = fuerza + 0.5f;
+                    else if(errorCometido() < -0.5f)
+                        valorReal = fuerza - 0.5f;
+                    else
+                        valorReal = fuerza;
+                    
+                    System.out.println(distaciaACanasta(posicionPelota));
+                    System.out.println("Fuerza: " + fuerza + " Real: " + (fuerza - errorCometido()));
                     casoAdecidir.setClassValue(valorReal);
                     casosEntrenamiento.add(casoAdecidir);
                     for (int i = 0; i < casosEntrenamiento.numInstances() - maximoNumeroCasosEntrenamiento; i++) {
@@ -75,7 +81,6 @@ public class Main extends SimpleApplication {
                     nuevaPelota();
                     lanzando = false;
                     finLanzamiento = true;
-                    System.out.println(" distancia: "+errorCometido());
                 }
                 
             }
@@ -140,6 +145,7 @@ public class Main extends SimpleApplication {
         //Estado incial del juego
         lanzando = false;
         finLanzamiento = true;
+        posicionPelota = new Vector3f(0, 1f, 13);
         
         //Aprendizaje
         try {
@@ -165,7 +171,7 @@ public class Main extends SimpleApplication {
                 casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
                 casoAdecidir.setDataset(casosEntrenamiento);
             
-                float fuerza = (float)Math.random() * 5;
+                fuerza = (float)Math.random()*3 + 3;
                 float angulo = 45; //TODO: TEMPORAL
                 casoAdecidir.setValue(0, 20); //TODO: POSICIÓN ACTUAL, TEMPORAL
                 //casoAdecidir.setValue(1, fuerza); //TODO: POSICIÓN ACTUAL, TEMPORAL
@@ -173,9 +179,9 @@ public class Main extends SimpleApplication {
 
                 //si el conocimiento aprendido obtuvo una puntuación satisfactoria usarlo...
                 float valorPredicho = fuerza;
-                if (errorPromedio < 6) {
+                if (errorPromedio < 1) {
                     valorPredicho = (float) conocimiento.classifyInstance(casoAdecidir);
-                    
+                    System.out.println("ERROR BAJO: " + errorPromedio + "    PREDICHO: " + valorPredicho);
                 } else {
                     System.out.println("ERROR ALTO: " + errorPromedio);
                 }
@@ -196,8 +202,8 @@ public class Main extends SimpleApplication {
             pCanasta = fisicaCanasta.getPhysicsLocation();
     }
     
-    private double distanciaObjetivo() {
-        return Math.sqrt(Math.pow(pPelota.x - pCanasta.x, 2) + Math.pow(pPelota.z - pCanasta.z, 2));
+    private double distaciaACanasta(Vector3f posicion) {
+        return Math.sqrt(Math.pow(posicion.x - pCanasta.x, 2) + Math.pow(posicion.z - pCanasta.z, 2));
     }
     
     private double errorCometido() {
@@ -244,7 +250,7 @@ public class Main extends SimpleApplication {
         mat_bola2.setFloat("Shininess", 640f);
         pelota = new Geometry("pelota", sphere2);
         pelota.setMaterial(mat_bola2);
-        pelota.setLocalTranslation(new Vector3f(0, 1f, 10));
+        pelota.setLocalTranslation(posicionPelota);
         rootNode.attachChild(pelota);
         
         fisicaPelota = new RigidBodyControl(1f);
