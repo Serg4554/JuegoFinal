@@ -131,6 +131,7 @@ public class Main extends SimpleApplication {
         fisicaCanasta = new RigidBodyControl(0f);
         canasta.addControl(fisicaCanasta);
         estadosFisicos.getPhysicsSpace().add(fisicaCanasta);
+        pCanasta = fisicaCanasta.getPhysicsLocation();
         
         //Colisiones
         estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
@@ -160,8 +161,21 @@ public class Main extends SimpleApplication {
     }
     
     private void disparaPelota(float fuerza, Vector3f direccion, float angulo) {
-        Vector3f dir = new Vector3f(new Vector3f(direccion.x-fisicaPelota.getPhysicsLocation().x, angulo, direccion.z-fisicaPelota.getPhysicsLocation().z)).normalize();
-        fisicaPelota.applyImpulse(dir.mult(fuerza),new Vector3f(1,1,1));
+        float x = (pPelota.x - direccion.x);
+        float z = (pPelota.z - direccion.z);
+        x = -x / Math.max(x, z);
+        z = -z / Math.max(x, z);
+        
+        if(angulo > 45) {
+            x -= (angulo*x)/90;
+            z -= (angulo*z)/90;
+            angulo = 1f;
+        } else {
+            angulo /= 45;
+        }
+        
+        Vector3f impulso = new Vector3f(x, angulo, z);
+        fisicaPelota.applyImpulse(impulso.mult(fuerza), new Vector3f(0, 0, 0));
     }
 
     @Override
@@ -180,7 +194,7 @@ public class Main extends SimpleApplication {
         mat_bola2.setFloat("Shininess", 64f);
         pelota = new Geometry("pelota", sphere2);
         pelota.setMaterial(mat_bola2);
-        pelota.setLocalTranslation(new Vector3f(0, 1f, 10));
+        pelota.setLocalTranslation(new Vector3f(-15, 1f, 10));
         rootNode.attachChild(pelota);
         fisicaPelota = new RigidBodyControl(1f);
         pelota.addControl(fisicaPelota);
@@ -188,12 +202,13 @@ public class Main extends SimpleApplication {
         estadosFisicos.getPhysicsSpace().add(fisicaPelota);
         fisicaPelota.setRestitution(0.6f);
         fisicaPelota.setMass(0.5f);
+        pPelota = fisicaPelota.getPhysicsLocation();
         
-        float fuerza=(float)Math.random()*10;
-        float angulo=(float)Math.random()*10+4;
+        float fuerza = (float)Math.random() * 10;
+        float angulo = (float)Math.random() * 90;
         
         System.out.print("fuerza: "+fuerza+" angulo: "+angulo);
-        disparaPelota(fuerza,fisicaCanasta.getPhysicsLocation(),angulo);
+        disparaPelota(fuerza, pCanasta, angulo);
 
     }
 }
