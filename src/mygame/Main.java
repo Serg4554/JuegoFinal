@@ -14,6 +14,18 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.util.TangentBinormalGenerator;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import weka.classifiers.Classifier;
+import weka.classifiers.Evaluation;
+import weka.classifiers.trees.M5P;
+import weka.core.Attribute;
+import weka.core.Debug;
+import weka.core.Instance;
+import weka.core.Instances;
 
 /**
  * This is the Main Class of your Game. You should only do initialization here.
@@ -28,6 +40,9 @@ public class Main extends SimpleApplication {
     private Vector3f pPelota, pCanasta;
     private Spatial canasta;
     private boolean lanzando, finLanzamiento;
+    private Classifier conocimiento = null;
+    private Instances casosEntrenamiento = null;
+    private int maximoNumeroCasosEntrenamiento = 300;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -61,7 +76,6 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-        
         //Cámara
         this.flyCam.setEnabled(true);
         this.flyCam.setMoveSpeed(30);
@@ -87,7 +101,7 @@ public class Main extends SimpleApplication {
         
         //Ajusta luces
         DirectionalLight light = new DirectionalLight();
-        light.setDirection(new Vector3f(0f, -5f, -1f).normalizeLocal());
+        light.setDirection(new Vector3f(-4f, -5f, 4f).normalizeLocal());
         light.setColor(ColorRGBA.White);
         rootNode.addLight(light);
         
@@ -115,22 +129,61 @@ public class Main extends SimpleApplication {
         //Colisiones
         estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
         
-        //Aprendizaje
+        //Estado incial del juego
         lanzando = false;
         finLanzamiento = true;
+        
+        //Aprendizaje
+        try {
+            String datos = System.getProperty("user.dir") + "/disparos.arff";
+            casosEntrenamiento = new Instances(new BufferedReader(new FileReader(datos)));
+            casosEntrenamiento.setClassIndex(casosEntrenamiento.numAttributes() - 1); //TODO: PROBAR
+            conocimiento = new M5P();
+        } catch (IOException e) {
+            //Ignore
+        }
     }
 
     @Override
     public void simpleUpdate(float tpf) {
         if(finLanzamiento && !lanzando) {
-            float fuerza = (float)Math.random() * 10;
-            float angulo = (float)Math.random() * 90;
+            try {
+                //Qué error tiene el conocimiento aprendido hasta ahora?
+                conocimiento.buildClassifier(casosEntrenamiento);
+                Evaluation evaluador = new Evaluation(casosEntrenamiento);
+                evaluador.crossValidateModel(conocimiento, casosEntrenamiento, 10, new Debug.Random(1));
+                double errorPromedio = evaluador.meanAbsoluteError();
+
+                Instance casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
+                casoAdecidir.setDataset(casosEntrenamiento);
             
-            finLanzamiento = false;
-            nuevaPelota();
-            lanzando = true;
-            disparaPelota(fuerza, pCanasta, angulo);
-            System.out.print("fuerza: "+fuerza+" angulo: "+angulo);
+                float fuerza = (float)Math.random() * 10;
+                float angulo = 45; //TODO: TEMPORAL
+                casoAdecidir.setValue(0, 20); //TODO: POSICIÓN ACTUAL, TEMPORAL
+                casoAdecidir.setValue(1, fuerza); //TODO: POSICIÓN ACTUAL, TEMPORAL
+                //casoAdecidir.setValue(2, angulo); //TODO: POSICIÓN ACTUAL, TEMPORAL
+
+                //si el conocimiento aprendido obtuvo una puntuación satisfactoria usarlo...
+                System.out.println(errorPromedio);
+                if (errorPromedio < 1) {
+                    float valorPredicho = (float) conocimiento.classifyInstance(casoAdecidir);
+                    finLanzamiento = false;
+                    nuevaPelota();
+                    lanzando = true;
+                    disparaPelota(valorPredicho, pCanasta, angulo);
+                } else {
+                    System.out.println(" ERROR ALTO. Caso no se usará para decidir (pero sí se guardará)");
+                }
+
+                double valorReal = 0.5 + fuerza * 0.08f + Math.random() * 0.1;  //... por ejemplo..
+                casoAdecidir.setClassValue(valorReal);
+                casosEntrenamiento.add(casoAdecidir);
+                for (int i = 0; i < casosEntrenamiento.numInstances() - this.maximoNumeroCasosEntrenamiento; i++) {
+                    casosEntrenamiento.delete(0);  //Hay muchos ejemplos borrar el más antiguo
+                }
+            } catch (Exception ex) {
+                //Ignore
+            }
         }
         
         if(pPelota != null)
@@ -182,9 +235,9 @@ public class Main extends SimpleApplication {
         Material mat_bola2 = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
         mat_bola2.setTexture("DiffuseMap", assetManager.loadTexture("Textures/dirt.jpg"));
         mat_bola2.setBoolean("UseMaterialColors",true);
-        mat_bola2.setColor("Diffuse",ColorRGBA.LightGray);
-        mat_bola2.setColor("Specular",ColorRGBA.White);
-        mat_bola2.setFloat("Shininess", 64f);
+        mat_bola2.setColor("Diffuse",ColorRGBA.Orange);
+        mat_bola2.setColor("Specular",ColorRGBA.Orange);
+        mat_bola2.setFloat("Shininess", 640f);
         pelota = new Geometry("pelota", sphere2);
         pelota.setMaterial(mat_bola2);
         pelota.setLocalTranslation(new Vector3f(0, 1f, 10));
