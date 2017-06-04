@@ -27,8 +27,7 @@ public class Main extends SimpleApplication {
     private Geometry pelota;
     private Vector3f pPelota, pCanasta;
     private Spatial canasta;
-    private float tiempo;
-    private boolean lanzando=false;
+    private boolean lanzando, finLanzamiento;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -45,15 +44,14 @@ public class Main extends SimpleApplication {
         public void collision(PhysicsCollisionEvent event) {
             if (event.getNodeA().getName().equals("pelota") && event.getNodeB().getName().equals("suelo")) {
                 if(distanciaObjetivo() < 1) {
-                    System.out.println("Colisión");
+                    System.out.println("Canasta!");
                     
                 }
                 
-                if(lanzando ){
-                    estadosFisicos.getPhysicsSpace().remove(fisicaPelota);
-
-                    rootNode.detachChildNamed("pelota");
-                    lanzando=false;
+                if(!finLanzamiento && lanzando){
+                    nuevaPelota();
+                    lanzando = false;
+                    finLanzamiento = true;
                     System.out.println(" distancia: "+errorCometido());
                 }
                 
@@ -104,26 +102,7 @@ public class Main extends SimpleApplication {
         estadosFisicos.getPhysicsSpace().add(fisicaArea);
         fisicaArea.setRestitution(0.9f);
         
-        //Pelota
-//        Sphere sphere2 = new Sphere(32, 32, 0.4f);
-//        TangentBinormalGenerator.generate(sphere2);
-//        Material mat_bola2 = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-//        mat_bola2.setTexture("DiffuseMap", assetManager.loadTexture("Textures/dirt.jpg"));
-//        mat_bola2.setBoolean("UseMaterialColors",true);
-//        mat_bola2.setColor("Diffuse",ColorRGBA.LightGray);
-//        mat_bola2.setColor("Specular",ColorRGBA.White);
-//        mat_bola2.setFloat("Shininess", 64f);
-//        pelota = new Geometry("pelota", sphere2);
-//        pelota.setMaterial(mat_bola2);
-//        pelota.setLocalTranslation(new Vector3f(0, 1f, 10));
-//        rootNode.attachChild(pelota);
-//        fisicaPelota = new RigidBodyControl(1f);
-//        pelota.addControl(fisicaPelota);
-//        estadosFisicos.getPhysicsSpace().add(fisicaPelota);
-//        fisicaPelota.setRestitution(0.6f);
-//        fisicaPelota.setMass(0.5f);
-        
-        //canasta
+        //Canasta
         canasta = assetManager.loadModel("Models/canasta.j3o");
         canasta.setName("canasta");
         rootNode.attachChild(canasta);
@@ -135,20 +114,29 @@ public class Main extends SimpleApplication {
         
         //Colisiones
         estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
+        
+        //Aprendizaje
+        lanzando = false;
+        finLanzamiento = true;
     }
-    
+
     @Override
     public void simpleUpdate(float tpf) {
-        
-         
+        if(finLanzamiento && !lanzando) {
+            float fuerza = (float)Math.random() * 10;
+            float angulo = (float)Math.random() * 90;
             
-        if(!lanzando){
-            lanzar();  
-            lanzando=true;
-            pPelota = fisicaPelota.getPhysicsLocation();
-            pCanasta = fisicaCanasta.getPhysicsLocation();
+            finLanzamiento = false;
+            nuevaPelota();
+            lanzando = true;
+            disparaPelota(fuerza, pCanasta, angulo);
+            System.out.print("fuerza: "+fuerza+" angulo: "+angulo);
         }
         
+        if(pPelota != null)
+            fisicaPelota.getPhysicsLocation();
+        if(pCanasta != null)
+            pCanasta = fisicaCanasta.getPhysicsLocation();
     }
     
     private double distanciaObjetivo() {
@@ -182,8 +170,13 @@ public class Main extends SimpleApplication {
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
     }
-
-    private void lanzar() {
+    
+    private void nuevaPelota() {
+        if (pelota != null && fisicaPelota != null) {
+            rootNode.detachChildNamed("pelota");
+            estadosFisicos.getPhysicsSpace().remove(fisicaPelota);
+        }
+        
         Sphere sphere2 = new Sphere(32, 32, 0.4f);
         TangentBinormalGenerator.generate(sphere2);
         Material mat_bola2 = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
@@ -194,21 +187,14 @@ public class Main extends SimpleApplication {
         mat_bola2.setFloat("Shininess", 64f);
         pelota = new Geometry("pelota", sphere2);
         pelota.setMaterial(mat_bola2);
-        pelota.setLocalTranslation(new Vector3f(-15, 1f, 10));
+        pelota.setLocalTranslation(new Vector3f(0, 1f, 10));
         rootNode.attachChild(pelota);
+        
         fisicaPelota = new RigidBodyControl(1f);
         pelota.addControl(fisicaPelota);
-
         estadosFisicos.getPhysicsSpace().add(fisicaPelota);
         fisicaPelota.setRestitution(0.6f);
         fisicaPelota.setMass(0.5f);
         pPelota = fisicaPelota.getPhysicsLocation();
-        
-        float fuerza = (float)Math.random() * 10;
-        float angulo = (float)Math.random() * 90;
-        
-        System.out.print("fuerza: "+fuerza+" angulo: "+angulo);
-        disparaPelota(fuerza, pCanasta, angulo);
-
     }
 }
