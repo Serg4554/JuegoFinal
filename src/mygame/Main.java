@@ -42,6 +42,7 @@ public class Main extends SimpleApplication {
     private boolean lanzando, finLanzamiento;
     private Classifier conocimiento = null;
     private Instances casosEntrenamiento = null;
+    private Instance casoAdecidir;
     private int maximoNumeroCasosEntrenamiento = 300;
     
     public static void main(String[] args) {
@@ -64,6 +65,13 @@ public class Main extends SimpleApplication {
                 }
                 
                 if(!finLanzamiento && lanzando){
+                    double valorReal = errorCometido();
+                    casoAdecidir.setClassValue(valorReal);
+                    casosEntrenamiento.add(casoAdecidir);
+                    for (int i = 0; i < casosEntrenamiento.numInstances() - maximoNumeroCasosEntrenamiento; i++) {
+                        casosEntrenamiento.delete(0);  //Hay muchos ejemplos borrar el más antiguo
+                    }
+                
                     nuevaPelota();
                     lanzando = false;
                     finLanzamiento = true;
@@ -151,36 +159,32 @@ public class Main extends SimpleApplication {
                 //Qué error tiene el conocimiento aprendido hasta ahora?
                 conocimiento.buildClassifier(casosEntrenamiento);
                 Evaluation evaluador = new Evaluation(casosEntrenamiento);
-                evaluador.crossValidateModel(conocimiento, casosEntrenamiento, 10, new Debug.Random(1));
+                evaluador.crossValidateModel(conocimiento, casosEntrenamiento, 5, new Debug.Random(1));
                 double errorPromedio = evaluador.meanAbsoluteError();
 
-                Instance casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
+                casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
                 casoAdecidir.setDataset(casosEntrenamiento);
             
-                float fuerza = (float)Math.random() * 10;
+                float fuerza = (float)Math.random() * 5;
                 float angulo = 45; //TODO: TEMPORAL
                 casoAdecidir.setValue(0, 20); //TODO: POSICIÓN ACTUAL, TEMPORAL
-                casoAdecidir.setValue(1, fuerza); //TODO: POSICIÓN ACTUAL, TEMPORAL
+                //casoAdecidir.setValue(1, fuerza); //TODO: POSICIÓN ACTUAL, TEMPORAL
                 //casoAdecidir.setValue(2, angulo); //TODO: POSICIÓN ACTUAL, TEMPORAL
 
                 //si el conocimiento aprendido obtuvo una puntuación satisfactoria usarlo...
-                System.out.println(errorPromedio);
-                if (errorPromedio < 1) {
-                    float valorPredicho = (float) conocimiento.classifyInstance(casoAdecidir);
-                    finLanzamiento = false;
-                    nuevaPelota();
-                    lanzando = true;
-                    disparaPelota(valorPredicho, pCanasta, angulo);
+                float valorPredicho = fuerza;
+                if (errorPromedio < 6) {
+                    valorPredicho = (float) conocimiento.classifyInstance(casoAdecidir);
+                    
                 } else {
-                    System.out.println(" ERROR ALTO. Caso no se usará para decidir (pero sí se guardará)");
+                    System.out.println("ERROR ALTO: " + errorPromedio);
                 }
 
-                double valorReal = 0.5 + fuerza * 0.08f + Math.random() * 0.1;  //... por ejemplo..
-                casoAdecidir.setClassValue(valorReal);
-                casosEntrenamiento.add(casoAdecidir);
-                for (int i = 0; i < casosEntrenamiento.numInstances() - this.maximoNumeroCasosEntrenamiento; i++) {
-                    casosEntrenamiento.delete(0);  //Hay muchos ejemplos borrar el más antiguo
-                }
+                finLanzamiento = false;
+                nuevaPelota();
+                lanzando = true;
+                disparaPelota(valorPredicho, pCanasta, angulo);
+                
             } catch (Exception ex) {
                 //Ignore
             }
