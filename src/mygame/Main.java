@@ -70,8 +70,7 @@ public class Main extends SimpleApplication {
                     else
                         valorReal = fuerza;
                     
-                    System.out.println(distaciaACanasta(posicionPelota));
-                    System.out.println("Fuerza: " + fuerza + " Real: " + (fuerza - errorCometido()));
+                    System.out.println("Error cometido: " + errorCometido() + "Fuerza: " + fuerza + " Real: " + valorReal);
                     casoAdecidir.setClassValue(valorReal);
                     casosEntrenamiento.add(casoAdecidir);
                     for (int i = 0; i < casosEntrenamiento.numInstances() - maximoNumeroCasosEntrenamiento; i++) {
@@ -121,7 +120,7 @@ public class Main extends SimpleApplication {
         //Carga area
         area = assetManager.loadModel("Models/area.j3o");
         area.setName("suelo");
-        area.scale(3,1,3);
+        area.scale(8,1,8);
         rootNode.attachChild(area);
         area.setLocalTranslation(new Vector3f(0, 0, 0));
         fisicaArea = new RigidBodyControl(0.0f);
@@ -145,7 +144,7 @@ public class Main extends SimpleApplication {
         //Estado incial del juego
         lanzando = false;
         finLanzamiento = true;
-        posicionPelota = new Vector3f(0, 1f, 13);
+        posicionPelota = new Vector3f(0, 1f, 10);
         
         //Aprendizaje
         try {
@@ -170,8 +169,7 @@ public class Main extends SimpleApplication {
 
                 casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
                 casoAdecidir.setDataset(casosEntrenamiento);
-            
-                fuerza = (float)Math.random()*3 + 3;
+                fuerza = (float)Math.random()*5 + 3;
                 float angulo = 45; //TODO: TEMPORAL
                 casoAdecidir.setValue(0, 20); //TODO: POSICIÓN ACTUAL, TEMPORAL
                 //casoAdecidir.setValue(1, fuerza); //TODO: POSICIÓN ACTUAL, TEMPORAL
