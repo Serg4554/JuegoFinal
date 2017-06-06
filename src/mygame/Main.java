@@ -45,7 +45,9 @@ public class Main extends SimpleApplication {
     private Instance casoAdecidir;
     private int maximoNumeroCasosEntrenamiento = 300;
     private float fuerza;
-    private Vector3f posicionPelota;
+    private Vector3f posicionInicialPelota;
+    private int numTiro = 0;
+    private final int NUMERO_TIROS = 10;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -62,14 +64,24 @@ public class Main extends SimpleApplication {
         public void collision(PhysicsCollisionEvent event) {
             if (event.getNodeA().getName().equals("pelota") && event.getNodeB().getName().equals("suelo")) {               
                 if(!finLanzamiento && lanzando){
-                    double valorReal = distaciaAPelota(pPelota);
-                    System.out.println("Error cometido: " + errorCometido() + "Fuerza: " + fuerza + " Real: " + valorReal);
-                    casoAdecidir.setClassValue(valorReal);
+                    if(numTiro < NUMERO_TIROS) {
+                        casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
+                        casoAdecidir.setDataset(casosEntrenamiento);
+                        casoAdecidir.setValue(0, distaciaAPelota(pPelota));
+                        casoAdecidir.setClassValue(fuerza);
+                    } else {
+                        casoAdecidir.setValue(0, distaciaAPelota(pPelota));
+                        casoAdecidir.setClassValue(fuerza);
+                    }
+                    System.out.println("Diat. desde pelota: " + distaciaAPelota(pPelota) + " Fuerza: " + fuerza);
+                    
+                    //Aprende
                     casosEntrenamiento.add(casoAdecidir);
                     for (int i = 0; i < casosEntrenamiento.numInstances() - maximoNumeroCasosEntrenamiento; i++) {
                         casosEntrenamiento.delete(0);  //Hay muchos ejemplos borrar el más antiguo
                     }
-                
+                    
+                    //Lanzamos de nuevo
                     nuevaPelota();
                     lanzando = false;
                     finLanzamiento = true;
@@ -124,8 +136,9 @@ public class Main extends SimpleApplication {
         //Canasta
         canasta = assetManager.loadModel("Models/canasta.j3o");
         canasta.setName("canasta");
+        canasta.scale(1.5f, 0.2f, 1.5f);
         rootNode.attachChild(canasta);
-        canasta.setLocalTranslation(new Vector3f(0, 0.5f, -10));
+        canasta.setLocalTranslation(new Vector3f(0, 0.5f, 0));
         fisicaCanasta = new RigidBodyControl(0f);
         canasta.addControl(fisicaCanasta);
         estadosFisicos.getPhysicsSpace().add(fisicaCanasta);
@@ -137,7 +150,7 @@ public class Main extends SimpleApplication {
         //Estado incial del juego
         lanzando = false;
         finLanzamiento = true;
-        posicionPelota = new Vector3f(0, 1f, 20);
+        posicionInicialPelota = new Vector3f(0, 1f, 20);
         
         //Aprendizaje
         try {
@@ -154,33 +167,41 @@ public class Main extends SimpleApplication {
     public void simpleUpdate(float tpf) {
         if(finLanzamiento && !lanzando) {
             try {
-                //Qué error tiene el conocimiento aprendido hasta ahora?
+                if(numTiro < NUMERO_TIROS) {
+                    //Primera fase
+                    fuerza = (float)Math.random()*8 + 3;
+                } else {
+                    //Segunda fase
+                    if(numTiro % 5 == 0) {
+                        posicionInicialPelota.x = (float)Math.random() * 40 - 20;
+                        posicionInicialPelota.z = (float)Math.random() * 40 - 20;
+                    }
+                    
+                    casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
+                    casoAdecidir.setDataset(casosEntrenamiento);
+                    casoAdecidir.setValue(0, distaciaACanasta(posicionInicialPelota));
+                    fuerza = (float)conocimiento.classifyInstance(casoAdecidir);
+                    System.out.println("Tiro: " + numTiro + " Fuerza predicha: " + fuerza + " Dist. canasta: " + distaciaACanasta(posicionInicialPelota));
+                }
+                numTiro++;
+                
+                
                 conocimiento.buildClassifier(casosEntrenamiento);
                 Evaluation evaluador = new Evaluation(casosEntrenamiento);
                 evaluador.crossValidateModel(conocimiento, casosEntrenamiento, 5, new Debug.Random(1));
-                double errorPromedio = evaluador.meanAbsoluteError();
+                //double errorPromedio = evaluador.meanAbsoluteError();
 
-                casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
-                casoAdecidir.setDataset(casosEntrenamiento);
-                fuerza = (float)Math.random()*8 + 3;
-                float angulo = 45; //TODO: TEMPORAL
-                casoAdecidir.setValue(0, 20); //TODO: POSICIÓN ACTUAL, TEMPORAL
-                //casoAdecidir.setValue(1, fuerza); //TODO: POSICIÓN ACTUAL, TEMPORAL
-                //casoAdecidir.setValue(2, angulo); //TODO: POSICIÓN ACTUAL, TEMPORAL
-
-                //si el conocimiento aprendido obtuvo una puntuación satisfactoria usarlo...
-                float valorPredicho = fuerza;
-                if (errorPromedio < 0.2) {
-                    valorPredicho = (float) conocimiento.classifyInstance(casoAdecidir);
-                    System.out.println("ERROR BAJO: " + errorPromedio + "    PREDICHO: " + valorPredicho);
-                } else {
-                    System.out.println("ERROR ALTO: " + errorPromedio);
-                }
+//                if(errorPromedio < 0.1) {
+//                  valorPredicho = (float) conocimiento.classifyInstance(casoAdecidir);
+//                  System.out.println("ERROR BAJO: " + errorPromedio + "    PREDICHO: " + valorPredicho);
+//                } else {
+//                    if(casoAdecidir != null) System.out.println("ERROR ALTO: " + errorPromedio + "PREDICCIÓN MALA: " + conocimiento.classifyInstance(casoAdecidir));
+//                }
 
                 finLanzamiento = false;
                 nuevaPelota();
                 lanzando = true;
-                disparaPelota(valorPredicho, pCanasta, angulo);
+                disparaPelota(fuerza, pCanasta, 45);
                 
             } catch (Exception ex) {
                 //Ignore
@@ -188,13 +209,17 @@ public class Main extends SimpleApplication {
         }
         
         if(pPelota != null)
-            fisicaPelota.getPhysicsLocation();
+            pPelota = fisicaPelota.getPhysicsLocation();
         if(pCanasta != null)
             pCanasta = fisicaCanasta.getPhysicsLocation();
     }
     
     private double distaciaAPelota(Vector3f posicion) {
-        return Math.sqrt(Math.pow(posicion.x - posicionPelota.x, 2) + Math.pow(posicion.z - posicionPelota.z, 2));
+        return Math.sqrt(Math.pow(posicion.x - posicionInicialPelota.x, 2) + Math.pow(posicion.z - posicionInicialPelota.z, 2));
+    }
+    
+    private double distaciaACanasta(Vector3f posicion) {
+        return Math.sqrt(Math.pow(posicion.x - pCanasta.x, 2) + Math.pow(posicion.z - pCanasta.z, 2));
     }
     
     private double errorCometido() {
@@ -203,20 +228,12 @@ public class Main extends SimpleApplication {
     }
     
     private void disparaPelota(float fuerza, Vector3f direccion, float angulo) {
-        float x = (pPelota.x - direccion.x);
-        float z = (pPelota.z - direccion.z);
-        x = -x / Math.max(x, z);
-        z = -z / Math.max(x, z);
+        Vector3f impulso = direccion.subtract(posicionInicialPelota);
+        impulso.y = 0;
+        impulso = impulso.normalize();
+        impulso.y = 1;
+        impulso = impulso.normalize();
         
-        if(angulo > 45) {
-            x -= (angulo*x)/90;
-            z -= (angulo*z)/90;
-            angulo = 1f;
-        } else {
-            angulo /= 45;
-        }
-        
-        Vector3f impulso = new Vector3f(x, angulo, z);
         fisicaPelota.applyImpulse(impulso.mult(fuerza), new Vector3f(0, 0, 0));
     }
 
@@ -241,7 +258,7 @@ public class Main extends SimpleApplication {
         mat_bola2.setFloat("Shininess", 640f);
         pelota = new Geometry("pelota", sphere2);
         pelota.setMaterial(mat_bola2);
-        pelota.setLocalTranslation(posicionPelota);
+        pelota.setLocalTranslation(posicionInicialPelota);
         rootNode.attachChild(pelota);
         
         fisicaPelota = new RigidBodyControl(1f);
