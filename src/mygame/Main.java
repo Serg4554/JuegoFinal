@@ -62,14 +62,7 @@ public class Main extends SimpleApplication {
         public void collision(PhysicsCollisionEvent event) {
             if (event.getNodeA().getName().equals("pelota") && event.getNodeB().getName().equals("suelo")) {               
                 if(!finLanzamiento && lanzando){
-                    double valorReal;
-                    if(errorCometido() > 0.5f)
-                        valorReal = fuerza + 0.5f;
-                    else if(errorCometido() < -0.5f)
-                        valorReal = fuerza - 0.5f;
-                    else
-                        valorReal = fuerza;
-                    
+                    double valorReal = distaciaAPelota(pPelota);
                     System.out.println("Error cometido: " + errorCometido() + "Fuerza: " + fuerza + " Real: " + valorReal);
                     casoAdecidir.setClassValue(valorReal);
                     casosEntrenamiento.add(casoAdecidir);
@@ -144,7 +137,7 @@ public class Main extends SimpleApplication {
         //Estado incial del juego
         lanzando = false;
         finLanzamiento = true;
-        posicionPelota = new Vector3f(0, 1f, 10);
+        posicionPelota = new Vector3f(0, 1f, 20);
         
         //Aprendizaje
         try {
@@ -169,7 +162,7 @@ public class Main extends SimpleApplication {
 
                 casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
                 casoAdecidir.setDataset(casosEntrenamiento);
-                fuerza = (float)Math.random()*5 + 3;
+                fuerza = (float)Math.random()*8 + 3;
                 float angulo = 45; //TODO: TEMPORAL
                 casoAdecidir.setValue(0, 20); //TODO: POSICIÓN ACTUAL, TEMPORAL
                 //casoAdecidir.setValue(1, fuerza); //TODO: POSICIÓN ACTUAL, TEMPORAL
@@ -177,7 +170,7 @@ public class Main extends SimpleApplication {
 
                 //si el conocimiento aprendido obtuvo una puntuación satisfactoria usarlo...
                 float valorPredicho = fuerza;
-                if (errorPromedio < 1) {
+                if (errorPromedio < 0.2) {
                     valorPredicho = (float) conocimiento.classifyInstance(casoAdecidir);
                     System.out.println("ERROR BAJO: " + errorPromedio + "    PREDICHO: " + valorPredicho);
                 } else {
@@ -200,8 +193,8 @@ public class Main extends SimpleApplication {
             pCanasta = fisicaCanasta.getPhysicsLocation();
     }
     
-    private double distaciaACanasta(Vector3f posicion) {
-        return Math.sqrt(Math.pow(posicion.x - pCanasta.x, 2) + Math.pow(posicion.z - pCanasta.z, 2));
+    private double distaciaAPelota(Vector3f posicion) {
+        return Math.sqrt(Math.pow(posicion.x - posicionPelota.x, 2) + Math.pow(posicion.z - posicionPelota.z, 2));
     }
     
     private double errorCometido() {
