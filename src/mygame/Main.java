@@ -5,6 +5,7 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.font.BitmapText;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -48,6 +49,7 @@ public class Main extends SimpleApplication {
     private Vector3f posicionInicialPelota;
     private int numTiro = 0;
     private final int NUMERO_TIROS = 10;
+    private BitmapText hudText;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -161,7 +163,19 @@ public class Main extends SimpleApplication {
         } catch (IOException e) {
             //Ignore
         }
+        iniciarTexto();
     }
+    
+    
+        private void iniciarTexto(){
+        hudText = new BitmapText(guiFont, false);
+        hudText.setSize(guiFont.getCharSet().getRenderedSize());      // font size
+        hudText.setColor(ColorRGBA.White);                             // font color
+        hudText.setLocalTranslation(300, hudText.getLineHeight(), 0); // position
+        guiNode.attachChild(hudText);
+        hudText.setText(NUMERO_TIROS+"");
+        }
+    
 
     @Override
     public void simpleUpdate(float tpf) {
@@ -184,7 +198,7 @@ public class Main extends SimpleApplication {
                     System.out.println("Tiro: " + numTiro + " Fuerza predicha: " + fuerza + " Dist. canasta: " + distaciaACanasta(posicionInicialPelota));
                 }
                 numTiro++;
-                
+                hudText.setText(Math.abs(NUMERO_TIROS-numTiro)+"");
                 
                 conocimiento.buildClassifier(casosEntrenamiento);
                 Evaluation evaluador = new Evaluation(casosEntrenamiento);
