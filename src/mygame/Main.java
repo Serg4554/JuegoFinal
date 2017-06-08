@@ -47,11 +47,10 @@ public class Main extends SimpleApplication {
     private float fuerza;
     private Vector3f posicionInicialPelota;
     private int numTiro = 0;
-    Mesh lineaFuerza, lineaDistancia;
-    Geometry lineaFuerzaGeometry, lineaDistanciaGeometry;
+    private Mesh lineaFuerza, lineaDistancia;
+    private Geometry lineaFuerzaGeometry, lineaDistanciaGeometry;
     private final int NUMERO_TIROS = 20;
-    BitmapText textoFuerza, textoDistancia;
-    private BitmapText hudText;
+    private BitmapText textoFuerza, textoDistancia, hudText;
     
     public static void main(String[] args) {
         Main app = new Main();
