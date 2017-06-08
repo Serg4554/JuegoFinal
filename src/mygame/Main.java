@@ -33,11 +33,10 @@ import weka.core.Instances;
 public class Main extends SimpleApplication {
     private Spatial area;
     private BulletAppState estadosFisicos;
-    private RigidBodyControl fisicaArea, fisicaPelota, fisicaCanasta, fisicaBolaModelo;
+    private RigidBodyControl fisicaArea, fisicaPelota, fisicaCanasta;
     private Geometry pelota;
     private Vector3f pPelota, pCanasta;
     private Spatial canasta;
-    private Spatial bolaModelo;
     private boolean lanzando, finLanzamiento;
     private Classifier conocimiento = null;
     private Instances casosEntrenamiento = null;
@@ -135,23 +134,6 @@ public class Main extends SimpleApplication {
         estadosFisicos.getPhysicsSpace().add(fisicaCanasta);
         pCanasta = fisicaCanasta.getPhysicsLocation();
         
-        //Bola modelo
-        Sphere sphere = new Sphere(32, 32, 0.4f);
-        Material mat_bola = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        mat_bola.setTexture("DiffuseMap", assetManager.loadTexture("Textures/dirt.jpg"));
-        mat_bola.setBoolean("UseMaterialColors",true);
-        mat_bola.setColor("Diffuse",ColorRGBA.Green);
-        mat_bola.setColor("Specular",ColorRGBA.Green);
-        mat_bola.setFloat("Shininess", 640f);
-        bolaModelo = new Geometry("bolaModelo", sphere);
-        bolaModelo.setMaterial(mat_bola);
-        bolaModelo.setLocalTranslation(-50, 1f, 0);
-        rootNode.attachChild(bolaModelo);
-        fisicaBolaModelo = new RigidBodyControl(1f);
-        bolaModelo.addControl(fisicaBolaModelo);
-        estadosFisicos.getPhysicsSpace().add(fisicaBolaModelo);
-        fisicaBolaModelo.setMass(5f);
-        
         //Colisiones
         estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
         
@@ -239,9 +221,8 @@ public class Main extends SimpleApplication {
         impulso = impulso.normalize();
         impulso = impulso.mult(fuerza);
         
-        Vector3f pBolaBodelo = fisicaBolaModelo.getPhysicsLocation();
-        lineMesh.setBuffer(VertexBuffer.Type.Position, 3, new float[]{pBolaBodelo.x, pBolaBodelo.y, pBolaBodelo.z,
-            pBolaBodelo.x + impulso.x, pBolaBodelo.y + impulso.y, pBolaBodelo.z + impulso.z});
+        lineMesh.setBuffer(VertexBuffer.Type.Position, 3, new float[]{posicionInicialPelota.x, posicionInicialPelota.y, posicionInicialPelota.z,
+            posicionInicialPelota.x + impulso.x, posicionInicialPelota.y + impulso.y, posicionInicialPelota.z + impulso.z});
         lineMesh.setBuffer(VertexBuffer.Type.Index, 2, new short[]{0, 1});
         lineMesh.setBuffer(VertexBuffer.Type.Size, 1, new int[]{ 10 });
         lineMesh.updateBound();
