@@ -5,7 +5,6 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.RigidBodyControl;
-import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
@@ -16,6 +15,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer;
+import com.jme3.scene.shape.Cylinder;
 import com.jme3.scene.shape.Sphere;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -39,6 +39,7 @@ public class Main extends SimpleApplication {
     private Geometry pelota;
     private Vector3f pPelota, pCanasta;
     private Spatial canasta;
+    private Geometry borde1, borde2, borde3, borde4;
     private boolean lanzando, finLanzamiento;
     private Classifier conocimiento = null;
     private Instances casosEntrenamiento = null;
@@ -47,9 +48,9 @@ public class Main extends SimpleApplication {
     private float fuerza;
     private Vector3f posicionInicialPelota;
     private int numTiro = 0;
-    private Mesh lineaFuerza, lineaDistancia;
-    private Geometry lineaFuerzaGeometry, lineaDistanciaGeometry;
-    private final int NUMERO_TIROS = 20;
+    private Mesh lineaFuerza, lineaDistancia, lineaTiro;
+    private Geometry lineaFuerzaGeometry, lineaDistanciaGeometry, lineaTiroGeometry;
+    private final int NUMERO_TIROS = 10;
     private BitmapText textoFuerza, textoDistancia, hudText;
     
     public static void main(String[] args) {
@@ -76,8 +77,9 @@ public class Main extends SimpleApplication {
                         casoAdecidir.setValue(0, distaciaAPelota(pPelota));
                         casoAdecidir.setClassValue(fuerza);
                     }
+
                     System.out.println("Caso aprendido. Fuerza: " + fuerza + " Distancia: " + distaciaAPelota(pPelota) + "\n");
-                    
+
                     //Aprende
                     casosEntrenamiento.add(casoAdecidir);
                     for (int i = 0; i < casosEntrenamiento.numInstances() - maximoNumeroCasosEntrenamiento; i++) {
@@ -118,7 +120,7 @@ public class Main extends SimpleApplication {
         //Carga area
         area = assetManager.loadModel("Models/area.j3o");
         area.setName("suelo");
-        area.scale(8,1,8);
+        area.scale(8, 1, 8);
         rootNode.attachChild(area);
         area.setLocalTranslation(new Vector3f(0, 0, 0));
         fisicaArea = new RigidBodyControl(0.0f);
@@ -129,7 +131,7 @@ public class Main extends SimpleApplication {
         //Canasta
         canasta = assetManager.loadModel("Models/canasta.j3o");
         canasta.setName("canasta");
-        canasta.scale(1.5f, 0.2f, 1.5f);
+        canasta.scale(1.5f, 0.1f, 1.5f);
         rootNode.attachChild(canasta);
         canasta.setLocalTranslation(new Vector3f(0, 0.5f, 0));
         fisicaCanasta = new RigidBodyControl(0f);
@@ -150,6 +152,7 @@ public class Main extends SimpleApplication {
         lineaFuerza.setMode(Mesh.Mode.Lines);
         lineaFuerzaGeometry = new Geometry("line", lineaFuerza);
         Material lineMaterial = assetManager.loadMaterial("Common/Materials/RedColor.j3m");
+        Material lineMaterialTiro = assetManager.loadMaterial("Common/Materials/WhiteColor.j3m");
         lineaFuerzaGeometry.setMaterial(lineMaterial);
         rootNode.attachChild(lineaFuerzaGeometry);
         lineaDistancia = new Mesh();
@@ -157,9 +160,16 @@ public class Main extends SimpleApplication {
         lineaDistanciaGeometry = new Geometry("line", lineaDistancia);
         lineaDistanciaGeometry.setMaterial(lineMaterial);
         rootNode.attachChild(lineaDistanciaGeometry);
+        lineaTiro = new Mesh();
+        lineaTiro.setMode(Mesh.Mode.Lines);
+        lineaTiroGeometry = new Geometry("line", lineaTiro);
+        lineaTiroGeometry.setMaterial(lineMaterialTiro);
+        rootNode.attachChild(lineaTiroGeometry);
+        
+        //Configuración de texto
+        guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         
         //Texto fuerza
-        guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         textoFuerza = new BitmapText(guiFont, false);
         textoFuerza.setSize(0.5f);
         textoFuerza.setColor(ColorRGBA.Yellow);
@@ -178,6 +188,33 @@ public class Main extends SimpleApplication {
         hudText.setLocalTranslation(300, hudText.getLineHeight(), 0);
         guiNode.attachChild(hudText);
         hudText.setText("" + NUMERO_TIROS);
+        
+        //Bordes
+        Cylinder cilindro = new Cylinder(10, 10, 0.3f, 20);
+        Material mat_cilindro = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        mat_cilindro.setTexture("DiffuseMap", assetManager.loadTexture("Textures/dirt.jpg"));
+        mat_cilindro.setBoolean("UseMaterialColors",true);
+        mat_cilindro.setColor("Diffuse",ColorRGBA.Red);
+        mat_cilindro.setColor("Specular",ColorRGBA.Red);
+        mat_cilindro.setFloat("Shininess", 640f);
+        borde1 = new Geometry("borde1", cilindro);
+        borde1.setMaterial(mat_cilindro);
+        borde1.setLocalTranslation(-10f, 0.5f, 0);
+        borde2 = new Geometry("borde2", cilindro);
+        borde2.setMaterial(mat_cilindro);
+        borde2.setLocalTranslation(10f, 0.5f, 0);
+        borde3 = new Geometry("borde3", cilindro);
+        borde3.setMaterial(mat_cilindro);
+        borde3.rotate(0, (float)Math.PI* 1.5f, 0);
+        borde3.setLocalTranslation(0, 0.5f, -10f);
+        borde4 = new Geometry("borde4", cilindro);
+        borde4.setMaterial(mat_cilindro);
+        borde4.rotate(0, (float)Math.PI* 1.5f, 0);
+        borde4.setLocalTranslation(0, 0.5f, 10f);
+        rootNode.attachChild(borde1);
+        rootNode.attachChild(borde2);
+        rootNode.attachChild(borde3);
+        rootNode.attachChild(borde4);
         
         //Aprendizaje
         try {
@@ -228,8 +265,19 @@ public class Main extends SimpleApplication {
                 //Ignore
             }
         }
-        
-        if(pPelota != null)
+
+        if(numTiro > NUMERO_TIROS) {
+            //Dibuja línea tiro
+            lineaTiro.setBuffer(VertexBuffer.Type.Position, 3, new float[]{
+                posicionInicialPelota.x, posicionInicialPelota.y, posicionInicialPelota.z,
+                pPelota.x, pPelota.y, pPelota.z
+            });
+            lineaTiro.setBuffer(VertexBuffer.Type.Index, 2, new short[]{0, 1});
+            lineaTiro.updateBound();
+            lineaTiro.updateCounts();
+        }
+
+        if (pPelota != null)
             pPelota = fisicaPelota.getPhysicsLocation();
         if(pCanasta != null)
             pCanasta = fisicaCanasta.getPhysicsLocation();
