@@ -5,6 +5,8 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.PhysicsCollisionEvent;
 import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.font.BitmapFont;
+import com.jme3.font.BitmapText;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
@@ -45,9 +47,10 @@ public class Main extends SimpleApplication {
     private float fuerza;
     private Vector3f posicionInicialPelota;
     private int numTiro = 0;
-    Mesh lineMesh;
-    Geometry lineGeometry;
+    Mesh lineaFuerza, lineaDistancia;
+    Geometry lineaFuerzaGeometry, lineaDistanciaGeometry;
     private final int NUMERO_TIROS = 20;
+    BitmapText textoFuerza, textoDistancia;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -142,13 +145,29 @@ public class Main extends SimpleApplication {
         finLanzamiento = true;
         posicionInicialPelota = new Vector3f(0, 1f, 20);
         
-        //Linea
-        lineMesh = new Mesh();
-        lineMesh.setMode(Mesh.Mode.Lines);
-        lineGeometry = new Geometry("line", lineMesh);
+        //Lineas
+        lineaFuerza = new Mesh();
+        lineaFuerza.setMode(Mesh.Mode.Lines);
+        lineaFuerzaGeometry = new Geometry("line", lineaFuerza);
         Material lineMaterial = assetManager.loadMaterial("Common/Materials/RedColor.j3m");
-        lineGeometry.setMaterial(lineMaterial);
-        rootNode.attachChild(lineGeometry);
+        lineaFuerzaGeometry.setMaterial(lineMaterial);
+        rootNode.attachChild(lineaFuerzaGeometry);
+        lineaDistancia = new Mesh();
+        lineaDistancia.setMode(Mesh.Mode.Lines);
+        lineaDistanciaGeometry = new Geometry("line", lineaDistancia);
+        lineaDistanciaGeometry.setMaterial(lineMaterial);
+        rootNode.attachChild(lineaDistanciaGeometry);
+        
+        //Fuente
+        guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        textoFuerza = new BitmapText(guiFont, false);
+        textoFuerza.setSize(0.5f);
+        textoFuerza.setColor(ColorRGBA.Yellow);
+        textoFuerza.rotate(0, (float)Math.PI * 2.5f, 0);
+        textoDistancia = new BitmapText(guiFont, false);
+        textoDistancia.setSize(0.5f);
+        textoDistancia.setColor(ColorRGBA.Yellow);
+        textoDistancia.rotate(0, (float)Math.PI * 2.5f, 0);
         
         //Aprendizaje
         try {
@@ -192,7 +211,7 @@ public class Main extends SimpleApplication {
                 finLanzamiento = false;
                 nuevaPelota();
                 lanzando = true;
-                disparaPelota(fuerza, pCanasta, 45);
+                disparaPelota(fuerza, pCanasta);
                 
             } catch (Exception ex) {
                 //Ignore
@@ -213,7 +232,8 @@ public class Main extends SimpleApplication {
         return Math.sqrt(Math.pow(posicion.x - pCanasta.x, 2) + Math.pow(posicion.z - pCanasta.z, 2));
     }
     
-    private void disparaPelota(float fuerza, Vector3f direccion, float angulo) {
+    private void disparaPelota(float fuerza, Vector3f direccion) {
+        //Calcula impulso
         Vector3f impulso = direccion.subtract(posicionInicialPelota);
         impulso.y = 0;
         impulso = impulso.normalize();
@@ -221,13 +241,46 @@ public class Main extends SimpleApplication {
         impulso = impulso.normalize();
         impulso = impulso.mult(fuerza);
         
-        lineMesh.setBuffer(VertexBuffer.Type.Position, 3, new float[]{posicionInicialPelota.x, posicionInicialPelota.y, posicionInicialPelota.z,
-            posicionInicialPelota.x + impulso.x, posicionInicialPelota.y + impulso.y, posicionInicialPelota.z + impulso.z});
-        lineMesh.setBuffer(VertexBuffer.Type.Index, 2, new short[]{0, 1});
-        lineMesh.setBuffer(VertexBuffer.Type.Size, 1, new int[]{ 10 });
-        lineMesh.updateBound();
-        lineMesh.updateCounts();
+        //Calcula posición final del vector impulso
+        Vector3f posImpulso = impulso.clone();
+        posImpulso.x += posicionInicialPelota.x;
+        posImpulso.y += posicionInicialPelota.y;
+        posImpulso.z += posicionInicialPelota.z;
         
+        //Dibuja línea fuerza
+        lineaFuerza.setBuffer(VertexBuffer.Type.Position, 3, new float[] {
+            posicionInicialPelota.x, posicionInicialPelota.y, posicionInicialPelota.z,
+            posImpulso.x, posImpulso.y, posImpulso.z
+        });
+        lineaFuerza.setBuffer(VertexBuffer.Type.Index, 2, new short[]{0, 1});
+        lineaFuerza.updateBound();
+        lineaFuerza.updateCounts();
+        
+        //Muestra texto con fuerza
+        rootNode.detachChild(textoFuerza);
+        textoFuerza.setText("" + Math.round(fuerza*100f)/100f);
+        textoFuerza.setLocalTranslation(posImpulso.x, posImpulso.y, posImpulso.z);
+        rootNode.attachChild(textoFuerza);
+        
+        if(numTiro > NUMERO_TIROS) {
+            //Dibuja línea distancia
+            lineaDistancia.setBuffer(VertexBuffer.Type.Position, 3, new float[] {
+                posicionInicialPelota.x, posicionInicialPelota.y, posicionInicialPelota.z,
+                pCanasta.x, pCanasta.y + 0.1f, pCanasta.z
+            });
+            lineaDistancia.setBuffer(VertexBuffer.Type.Index, 2, new short[]{0, 1});
+            lineaDistancia.updateBound();
+            lineaDistancia.updateCounts();
+
+            //Muestra texto con distancia
+            Vector3f posDistancia = posicionInicialPelota.divide(2);
+            rootNode.detachChild(textoDistancia);
+            textoDistancia.setText(""+Math.round(distaciaACanasta(posicionInicialPelota)*100f)/100f);
+            textoDistancia.setLocalTranslation(posDistancia.x, posDistancia.y + 1f, posDistancia.z);
+            rootNode.attachChild(textoDistancia);
+        }
+        
+        //Aplica impulso
         fisicaPelota.applyImpulse(impulso, new Vector3f(0, 0, 0));
     }
 
