@@ -51,6 +51,7 @@ public class Main extends SimpleApplication {
     Geometry lineaFuerzaGeometry, lineaDistanciaGeometry;
     private final int NUMERO_TIROS = 20;
     BitmapText textoFuerza, textoDistancia;
+    private BitmapText hudText;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -158,16 +159,26 @@ public class Main extends SimpleApplication {
         lineaDistanciaGeometry.setMaterial(lineMaterial);
         rootNode.attachChild(lineaDistanciaGeometry);
         
-        //Fuente
+        //Texto fuerza
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         textoFuerza = new BitmapText(guiFont, false);
         textoFuerza.setSize(0.5f);
         textoFuerza.setColor(ColorRGBA.Yellow);
         textoFuerza.rotate(0, (float)Math.PI * 2.5f, 0);
+        
+        //Texto distancia
         textoDistancia = new BitmapText(guiFont, false);
         textoDistancia.setSize(0.5f);
         textoDistancia.setColor(ColorRGBA.Yellow);
         textoDistancia.rotate(0, (float)Math.PI * 2.5f, 0);
+        
+        //Texto contador
+        hudText = new BitmapText(guiFont, false);
+        hudText.setSize(guiFont.getCharSet().getRenderedSize());
+        hudText.setColor(ColorRGBA.White);
+        hudText.setLocalTranslation(300, hudText.getLineHeight(), 0);
+        guiNode.attachChild(hudText);
+        hudText.setText("" + NUMERO_TIROS);
         
         //Aprendizaje
         try {
@@ -207,7 +218,8 @@ public class Main extends SimpleApplication {
                     System.out.println("Caso predicho. Fuerza: " + fuerza + " Distancia: " + distaciaACanasta(posicionInicialPelota) + " (Error: " + evaluador.meanAbsoluteError() + ")");
                 }
                 numTiro++;
-
+                hudText.setText(""+Math.abs(NUMERO_TIROS - numTiro));
+                
                 finLanzamiento = false;
                 nuevaPelota();
                 lanzando = true;
