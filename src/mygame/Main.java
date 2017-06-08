@@ -11,18 +11,16 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.shape.Sphere;
-import com.jme3.util.TangentBinormalGenerator;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.M5P;
-import weka.core.Attribute;
 import weka.core.Debug;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -33,12 +31,13 @@ import weka.core.Instances;
  * @author normenhansen
  */
 public class Main extends SimpleApplication {
-    private Spatial mundo, area;
+    private Spatial area;
     private BulletAppState estadosFisicos;
-    private RigidBodyControl fisicaSuelo, fisicaArea, fisicaPelota, fisicaCanasta;
+    private RigidBodyControl fisicaArea, fisicaPelota, fisicaCanasta, fisicaBolaModelo;
     private Geometry pelota;
     private Vector3f pPelota, pCanasta;
     private Spatial canasta;
+    private Spatial bolaModelo;
     private boolean lanzando, finLanzamiento;
     private Classifier conocimiento = null;
     private Instances casosEntrenamiento = null;
@@ -47,7 +46,9 @@ public class Main extends SimpleApplication {
     private float fuerza;
     private Vector3f posicionInicialPelota;
     private int numTiro = 0;
-    private final int NUMERO_TIROS = 10;
+    Mesh lineMesh;
+    Geometry lineGeometry;
+    private final int NUMERO_TIROS = 20;
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -73,7 +74,7 @@ public class Main extends SimpleApplication {
                         casoAdecidir.setValue(0, distaciaAPelota(pPelota));
                         casoAdecidir.setClassValue(fuerza);
                     }
-                    System.out.println("Diat. desde pelota: " + distaciaAPelota(pPelota) + " Fuerza: " + fuerza);
+                    System.out.println("Caso aprendido. Fuerza: " + fuerza + " Distancia: " + distaciaAPelota(pPelota) + "\n");
                     
                     //Aprende
                     casosEntrenamiento.add(casoAdecidir);
@@ -102,16 +103,6 @@ public class Main extends SimpleApplication {
         //Fisica
         estadosFisicos = new BulletAppState();
         stateManager.attach(estadosFisicos);
-        
-        //Carga mundo
-//        mundo = assetManager.loadModel("Scenes/escena.j3o");
-//        mundo.setName("tierra");
-//        mundo.setLocalTranslation(0f,-1f, 0);
-//        rootNode.attachChild(mundo);
-//        fisicaSuelo = new RigidBodyControl(0.0f);
-//        mundo.addControl(fisicaSuelo);
-//        estadosFisicos.getPhysicsSpace().add(fisicaSuelo);
-//        fisicaSuelo.setRestitution(0.9f);
         
         //Cielo
         viewPort.setBackgroundColor(new ColorRGBA(0.7f, 0.8f, 1f, 1f));
@@ -144,6 +135,23 @@ public class Main extends SimpleApplication {
         estadosFisicos.getPhysicsSpace().add(fisicaCanasta);
         pCanasta = fisicaCanasta.getPhysicsLocation();
         
+        //Bola modelo
+        Sphere sphere = new Sphere(32, 32, 0.4f);
+        Material mat_bola = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        mat_bola.setTexture("DiffuseMap", assetManager.loadTexture("Textures/dirt.jpg"));
+        mat_bola.setBoolean("UseMaterialColors",true);
+        mat_bola.setColor("Diffuse",ColorRGBA.Green);
+        mat_bola.setColor("Specular",ColorRGBA.Green);
+        mat_bola.setFloat("Shininess", 640f);
+        bolaModelo = new Geometry("bolaModelo", sphere);
+        bolaModelo.setMaterial(mat_bola);
+        bolaModelo.setLocalTranslation(-50, 1f, 0);
+        rootNode.attachChild(bolaModelo);
+        fisicaBolaModelo = new RigidBodyControl(1f);
+        bolaModelo.addControl(fisicaBolaModelo);
+        estadosFisicos.getPhysicsSpace().add(fisicaBolaModelo);
+        fisicaBolaModelo.setMass(5f);
+        
         //Colisiones
         estadosFisicos.getPhysicsSpace().addCollisionListener(physicsCollisionListener);
         
@@ -151,6 +159,14 @@ public class Main extends SimpleApplication {
         lanzando = false;
         finLanzamiento = true;
         posicionInicialPelota = new Vector3f(0, 1f, 20);
+        
+        //Linea
+        lineMesh = new Mesh();
+        lineMesh.setMode(Mesh.Mode.Lines);
+        lineGeometry = new Geometry("line", lineMesh);
+        Material lineMaterial = assetManager.loadMaterial("Common/Materials/RedColor.j3m");
+        lineGeometry.setMaterial(lineMaterial);
+        rootNode.attachChild(lineGeometry);
         
         //Aprendizaje
         try {
@@ -167,36 +183,29 @@ public class Main extends SimpleApplication {
     public void simpleUpdate(float tpf) {
         if(finLanzamiento && !lanzando) {
             try {
+                conocimiento.buildClassifier(casosEntrenamiento);
+                Evaluation evaluador = new Evaluation(casosEntrenamiento);
+                evaluador.crossValidateModel(conocimiento, casosEntrenamiento, 5, new Debug.Random(1));
+                
+                System.out.println("Numero de tiro: " + numTiro);
+                
                 if(numTiro < NUMERO_TIROS) {
                     //Primera fase
-                    fuerza = (float)Math.random()*8 + 3;
+                    fuerza = (float)Math.random() * 15 + 1;
                 } else {
                     //Segunda fase
-                    if(numTiro % 5 == 0) {
-                        posicionInicialPelota.x = (float)Math.random() * 40 - 20;
-                        posicionInicialPelota.z = (float)Math.random() * 40 - 20;
+                    if(numTiro % 1 == 0) {
+                        posicionInicialPelota.x = (float)Math.random() * 20 - 10;
+                        posicionInicialPelota.z = (float)Math.random() * 20 - 10;
                     }
                     
                     casoAdecidir = new Instance(casosEntrenamiento.numAttributes());
                     casoAdecidir.setDataset(casosEntrenamiento);
                     casoAdecidir.setValue(0, distaciaACanasta(posicionInicialPelota));
                     fuerza = (float)conocimiento.classifyInstance(casoAdecidir);
-                    System.out.println("Tiro: " + numTiro + " Fuerza predicha: " + fuerza + " Dist. canasta: " + distaciaACanasta(posicionInicialPelota));
+                    System.out.println("Caso predicho. Fuerza: " + fuerza + " Distancia: " + distaciaACanasta(posicionInicialPelota) + " (Error: " + evaluador.meanAbsoluteError() + ")");
                 }
                 numTiro++;
-                
-                
-                conocimiento.buildClassifier(casosEntrenamiento);
-                Evaluation evaluador = new Evaluation(casosEntrenamiento);
-                evaluador.crossValidateModel(conocimiento, casosEntrenamiento, 5, new Debug.Random(1));
-                //double errorPromedio = evaluador.meanAbsoluteError();
-
-//                if(errorPromedio < 0.1) {
-//                  valorPredicho = (float) conocimiento.classifyInstance(casoAdecidir);
-//                  System.out.println("ERROR BAJO: " + errorPromedio + "    PREDICHO: " + valorPredicho);
-//                } else {
-//                    if(casoAdecidir != null) System.out.println("ERROR ALTO: " + errorPromedio + "PREDICCIÓN MALA: " + conocimiento.classifyInstance(casoAdecidir));
-//                }
 
                 finLanzamiento = false;
                 nuevaPelota();
@@ -222,19 +231,23 @@ public class Main extends SimpleApplication {
         return Math.sqrt(Math.pow(posicion.x - pCanasta.x, 2) + Math.pow(posicion.z - pCanasta.z, 2));
     }
     
-    private double errorCometido() {
-        
-        return fisicaPelota.getPhysicsLocation().x - fisicaCanasta.getPhysicsLocation().x + fisicaPelota.getPhysicsLocation().z - fisicaCanasta.getPhysicsLocation().z;
-    }
-    
     private void disparaPelota(float fuerza, Vector3f direccion, float angulo) {
         Vector3f impulso = direccion.subtract(posicionInicialPelota);
         impulso.y = 0;
         impulso = impulso.normalize();
         impulso.y = 1;
         impulso = impulso.normalize();
+        impulso = impulso.mult(fuerza);
         
-        fisicaPelota.applyImpulse(impulso.mult(fuerza), new Vector3f(0, 0, 0));
+        Vector3f pBolaBodelo = fisicaBolaModelo.getPhysicsLocation();
+        lineMesh.setBuffer(VertexBuffer.Type.Position, 3, new float[]{pBolaBodelo.x, pBolaBodelo.y, pBolaBodelo.z,
+            pBolaBodelo.x + impulso.x, pBolaBodelo.y + impulso.y, pBolaBodelo.z + impulso.z});
+        lineMesh.setBuffer(VertexBuffer.Type.Index, 2, new short[]{0, 1});
+        lineMesh.setBuffer(VertexBuffer.Type.Size, 1, new int[]{ 10 });
+        lineMesh.updateBound();
+        lineMesh.updateCounts();
+        
+        fisicaPelota.applyImpulse(impulso, new Vector3f(0, 0, 0));
     }
 
     @Override
@@ -248,16 +261,15 @@ public class Main extends SimpleApplication {
             estadosFisicos.getPhysicsSpace().remove(fisicaPelota);
         }
         
-        Sphere sphere2 = new Sphere(32, 32, 0.4f);
-        TangentBinormalGenerator.generate(sphere2);
-        Material mat_bola2 = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        mat_bola2.setTexture("DiffuseMap", assetManager.loadTexture("Textures/dirt.jpg"));
-        mat_bola2.setBoolean("UseMaterialColors",true);
-        mat_bola2.setColor("Diffuse",ColorRGBA.Orange);
-        mat_bola2.setColor("Specular",ColorRGBA.Orange);
-        mat_bola2.setFloat("Shininess", 640f);
-        pelota = new Geometry("pelota", sphere2);
-        pelota.setMaterial(mat_bola2);
+        Sphere sphere = new Sphere(32, 32, 0.4f);
+        Material mat_bola = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        mat_bola.setTexture("DiffuseMap", assetManager.loadTexture("Textures/dirt.jpg"));
+        mat_bola.setBoolean("UseMaterialColors",true);
+        mat_bola.setColor("Diffuse",ColorRGBA.Orange);
+        mat_bola.setColor("Specular",ColorRGBA.Orange);
+        mat_bola.setFloat("Shininess", 640f);
+        pelota = new Geometry("pelota", sphere);
+        pelota.setMaterial(mat_bola);
         pelota.setLocalTranslation(posicionInicialPelota);
         rootNode.attachChild(pelota);
         
